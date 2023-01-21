@@ -21,7 +21,7 @@ class Fighter:
 
 
 def age_stats (fighters):
-    """This function creates a dictionary to store list of ages"""
+    """This function creates a list to store list of ages"""
     ages_list = []
     for i in fighters:
         ages_list.append(i.get_age())
