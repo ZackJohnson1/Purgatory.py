@@ -5,9 +5,6 @@ import re
 def load_data(filename):
     return pd.read_csv(filename)
 
-def inspect_data(data):
-    return data
-
 # Display all matches for a specific tournament
 def display_tournament_matches(data, tournament_name):
     tournament_matches = data[data['Tournament'].str.contains(tournament_name, case=False, na=False)]
@@ -203,30 +200,22 @@ def calculate_average_score_margin(data, player_name):
     return sum(score_diff) / len(score_diff) if score_diff else 0
 
 
-# Function to check if a player is seeded and not containing "Zachary Johnson"
-def is_seeded(player):
-    return bool(re.search(r'\(\d+\)', player)) and "Zachary Johnson" not in player
+def performance_against_seeded_players(data, player_name):
+    # Use a regular expression to identify matches involving seeded players
+    seeded_matches = data[data['Match'].str.contains(r'\(\d+\)', na=False)]
+    wins = seeded_matches[(seeded_matches['Match'].str.contains(f"{player_name} d.", case=False, na=False))]
+    losses = seeded_matches[~(seeded_matches['Match'].str.contains(f"{player_name} d.", case=False, na=False))]
+    return len(wins), len(losses)
 
 
-# Function to get results against seeded players
-def get_results_against_seeded(file_path):
-    # Read the CSV file
-    df = pd.read_csv(file_path)
-    # Initialize lists to store results
-    results_against_seeded = []
-    # Iterate over each match
-    for index, row in df.iterrows():
-        match = row['Match']
-        players = match.split(' d. ')
-        if len(players) == 2:
-            player1, player2 = players
-            # Check if either player is seeded and does not contain "Zachary Johnson"
-            if is_seeded(player1) or is_seeded(player2):
-                results_against_seeded.append(row)
-    # Convert results to DataFrame
-    results_df = pd.DataFrame(results_against_seeded)
-    return results_df
+def display_seeded_matches(data):
+    # Display matches involving seeded players
+    seeded_matches = data[data['Match'].str.contains(r'\(\d+\)', case=False, na=False)]
+    return seeded_matches
 
+
+def inspect_data(data):
+    return data
 
 def main():
     filename = 'tennis/results.csv'
@@ -327,13 +316,17 @@ def main():
     print(f"Average Score Margin: {avg_score_margin}")
     print("\n\n")
 
-    # Usage
-    file_path = 'tennis/results.csv'  # Replace with your file path
-    results_df = get_results_against_seeded(file_path)
-    print(f"\n{'='*20} Results against Seeds for {player_name} {'='*20}")
-    # Print the results to the terminal
-    print(results_df.to_string(index=False))
+    # Display and verify seeded matches
+    print(f"\n{'='*20} Seeded matches {'='*20}")
+    seeded_matches = display_seeded_matches(data)
+    print(seeded_matches)
+    print("\n\n")
 
+    # Calculate and display performance against seeded players
+    wins_against_seeded, losses_against_seeded = performance_against_seeded_players(data, player_name)
+    print(f"\n{'='*20} Performance against seeded players for {player_name} {'='*20}")
+    print(f"Wins: {wins_against_seeded}, Losses: {losses_against_seeded}")
+    print("\n\n")
 
 if __name__ == "__main__":
     main()
