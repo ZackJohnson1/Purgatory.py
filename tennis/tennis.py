@@ -73,6 +73,40 @@ def count_scorelines(data, player_name):
     
     return sets_won, sets_lost
 
+# Function to log record in 3-set matches
+def record_in_three_set_matches(data, player_name):
+    three_set_matches = data[data['Score'].str.contains(r'\d+-\d+;\s*\d+-\d+;\s*\d+-\d+', na=False)]
+    wins = three_set_matches[three_set_matches['Match'].str.contains(f"{player_name} d.", case=False, na=False)]
+    losses = three_set_matches[~three_set_matches['Match'].str.contains(f"{player_name} d.", case=False, na=False)]
+    return len(wins), len(losses), wins, losses
+
+# Function to log record in tiebreak sets
+def record_in_tiebreaks(data, player_name):
+    tiebreak_sets_won = 0
+    tiebreak_sets_lost = 0
+    tiebreak_win_matches = []
+    tiebreak_loss_matches = []
+
+    matches = data[data['Match'].str.contains(player_name, case=False, na=False)]
+    for index, row in matches.iterrows():
+        if pd.notna(row['Score']):
+            sets = re.findall(r'(\d+-\d+)', row['Score'])
+            for set_score in sets:
+                if set_score == "7-6" and f"{player_name} d." in row['Match']:
+                    tiebreak_sets_won += 1
+                    tiebreak_win_matches.append(row)
+                elif set_score == "6-7" and not f"{player_name} d." in row['Match']:
+                    tiebreak_sets_won += 1
+                    tiebreak_win_matches.append(row)
+                elif set_score == "6-7" and f"{player_name} d." in row['Match']:
+                    tiebreak_sets_lost += 1
+                    tiebreak_loss_matches.append(row)
+                elif set_score == "7-6" and not f"{player_name} d." in row['Match']:
+                    tiebreak_sets_lost += 1
+                    tiebreak_loss_matches.append(row)
+    
+    return tiebreak_sets_won, tiebreak_sets_lost, pd.DataFrame(tiebreak_win_matches), pd.DataFrame(tiebreak_loss_matches)
+
 # Main function to test the above functions
 def main():
     filename = 'tennis/results.csv'
@@ -116,6 +150,22 @@ def main():
     print(sets_won)
     print(f"\nSets lost for {player_name}:")
     print(sets_lost)
+    
+    # Display record in 3-set matches for a specific player
+    three_set_wins, three_set_losses, three_set_win_matches, three_set_loss_matches = record_in_three_set_matches(data, player_name)
+    print(f"\n3-set match record for {player_name}: {three_set_wins} Wins, {three_set_losses} Losses")
+    print("\n3-set match wins:")
+    print(three_set_win_matches)
+    print("\n3-set match losses:")
+    print(three_set_loss_matches)
+    
+    # Display record in tiebreak sets for a specific player
+    tiebreak_sets_won, tiebreak_sets_lost, tiebreak_win_matches, tiebreak_loss_matches = record_in_tiebreaks(data, player_name)
+    print(f"\nTiebreak sets record for {player_name}: {tiebreak_sets_won} Sets Won, {tiebreak_sets_lost} Sets Lost")
+    print("\nTiebreak sets won:")
+    print(tiebreak_win_matches)
+    print("\nTiebreak sets lost:")
+    print(tiebreak_loss_matches)
 
 if __name__ == "__main__":
     main()
