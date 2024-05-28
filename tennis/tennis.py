@@ -185,15 +185,59 @@ def calculate_total_sets(data, player_name):
     
     return sets_won, sets_lost
 
-# Main function to test the above functions
+def calculate_average_score_margin(data, player_name):
+    score_diff = []
+    matches = data[data['Match'].str.contains(player_name, case=False, na=False)]
+    for index, row in matches.iterrows():
+        if pd.notna(row['Score']):
+            sets = re.findall(r'(\d+)-(\d+)', row['Score'])
+            for set_score in sets:
+                player_games, opponent_games = int(set_score[0]), int(set_score[1])
+                if f"{player_name} d." in row['Match']:
+                    score_diff.append(player_games - opponent_games)
+                else:
+                    score_diff.append(opponent_games - player_games)
+    return sum(score_diff) / len(score_diff) if score_diff else 0
+
+
+def performance_against_seeded_players(data, player_name):
+    # Use a regular expression to identify matches involving seeded players
+    seeded_matches = data[data['Match'].str.contains(r'\(\d+\)', na=False)]
+    wins = seeded_matches[(seeded_matches['Match'].str.contains(f"{player_name} d.", case=False, na=False))]
+    losses = seeded_matches[~(seeded_matches['Match'].str.contains(f"{player_name} d.", case=False, na=False))]
+    return len(wins), len(losses)
+
+def performance_against_seeded_players(data, player_name):
+    # Identify matches involving seeded players using regex
+    seeded_matches = data[data['Match'].str.contains(r'\(\d+\)', case=False, na=False)]
+    wins = seeded_matches[seeded_matches['Match'].str.contains(f"{player_name} d.", case=False, na=False)]
+    losses = seeded_matches[(seeded_matches['Match'].str.contains(player_name, case=False, na=False)) &
+                            (~seeded_matches['Match'].str.contains(f"{player_name} d.", case=False, na=False))]
+    return len(wins), len(losses)
+
+
+def display_seeded_matches(data):
+    # Display matches involving seeded players
+    seeded_matches = data[data['Match'].str.contains(r'\(\d+\)', case=False, na=False)]
+    return seeded_matches
+
+
+def inspect_data(data):
+    return data
+
 def main():
     filename = 'tennis/results.csv'
     data = load_data(filename)
-    
-    # Set pandas display options to show more rows
+
+    # Set pandas display options to show all rows
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
-    
+
+    # Inspect the entire dataset to understand the seed representation
+    print(f"\n{'='*20} Inspecting the entire dataset {'='*20}")
+    print(inspect_data(data))
+    print("\n\n")
+
     # Display all matches for a specific tournament
     tournament_name = "INDIAN WELLS TENNIS GARDEN HOLIDAY JR OPEN"
     print(f"\n{'='*20} Matches for {tournament_name} {'='*20}")
@@ -272,6 +316,24 @@ def main():
     print(f"Matches Won: {wins}, Matches Lost: {losses}")
     print(f"Sets Won: {sets_won}, Sets Lost: {sets_lost}")
     print(f"Games Won: {games_won}, Games Lost: {games_lost}")
+    print("\n\n")
+
+    # Calculate and display average score margin
+    avg_score_margin = calculate_average_score_margin(data, player_name)
+    print(f"\n{'='*20} Average Score Margin for {player_name} {'='*20}")
+    print(f"Average Score Margin: {avg_score_margin}")
+    print("\n\n")
+
+    # Display and verify seeded matches
+    print(f"\n{'='*20} Seeded matches {'='*20}")
+    seeded_matches = display_seeded_matches(data)
+    print(seeded_matches)
+    print("\n\n")
+
+    # Calculate and display performance against seeded players
+    wins_against_seeded, losses_against_seeded = performance_against_seeded_players(data, player_name)
+    print(f"\n{'='*20} Performance against seeded players for {player_name} {'='*20}")
+    print(f"Wins: {wins_against_seeded}, Losses: {losses_against_seeded}")
     print("\n\n")
 
 if __name__ == "__main__":
